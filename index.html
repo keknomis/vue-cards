@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Opalion Coding Challenge</title>
+  <script src="https://unpkg.com/vue@next"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .button-wrapper {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+    }
+    .card {
+      position: relative;
+      /* other card styles */
+    }
+
+  </style>
+</head>
+
+<body>
+<div id="app">
+  <div class="container mx-auto px-4 pt-6">
+    <div class="search mb-5">
+      <!-- <label for="search" class="block">Search:</label> -->
+      <input type="text"
+             id="search"
+             class="w-full shadow-lg border-2 border-gray-300 rounded-lg px-4 py-2 text-lg font-semibold text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+             placeholder="search..."
+             v-model="search"
+      >
+    </div>
+
+    <div class="filters">
+      <button class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded"
+              @click="this.loadProductCategory('sunglasses')">
+        Only sunglasses
+      </button>
+      <button class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded ml-2 mb-2"
+              @click="this.getProducts()">
+        Reset
+      </button>
+    </div>
+
+
+    <div class="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 gap-5 relative">
+      <div class="card mx-auto rounded overflow-hidden shadow-lg bg-white"
+           v-for="product in filteredProducts"
+           :key="product.id"
+           @click="showDiscountPopup = true; selectedProduct = product;">
+        <h3 class="font-bold text-xl text-center mt-2 ">{{product.title}}</h3>
+
+        <div class="p-2">
+          <img :src="product.thumbnail" alt="">
+        </div>
+
+
+        <div class="p-2">
+          <p class="text-gray-500 text-base">{{ product.description }}</p>
+          <p>Price: {{ product.price }}</p>
+          <p>Rating: {{ product.rating }}</p>
+        </div>
+
+        <div class="button-wrapper">
+          <button class="bg-gray-200 hover:bg-gray-400 text-gray-800 font-bold py-1 px-4 rounded absolute bottom-0">
+            Discounted Price
+          </button>
+        </div>
+        <!--                <div v-if="showDiscountPopup"-->
+        <!--                     class="fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center"-->
+        <!--                     @click.self="closeDiscountPopup()">-->
+        <!--                    <div class="bg-white p-6 rounded shadow-lg">-->
+        <!--                        <p class="text-gray-800 font-bold text-lg mb-4">Discounted Price: {{ calculateDiscountPrice(selectedProduct.price, selectedProduct.discountPercentage) }}</p>-->
+        <!--                        <button class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded" @click="showDiscountPopup = false">Close</button>-->
+        <!--                    </div>-->
+        <!--                </div>-->
+
+        <!--                <div class="p-2">-->
+        <!--                    <h3>Click on the card to see the discounted price</h3>-->
+        <!--                </div>-->
+
+        <!--                <div v-if="this.showDiscountPopup"-->
+        <!--                     class="fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center"-->
+        <!--                     @click.self="this.closeDiscountPopup()">-->
+        <!--                    <div class="bg-white p-6 rounded shadow-lg">-->
+        <!--                        <p class="text-gray-800 font-bold text-lg mb-4">Discounted Price: {{ calculateDiscountPrice(selectedProduct.price, selectedProduct.discountPercentage) }}</p>-->
+        <!--                      &lt;!&ndash;  <button class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded" @click="closeDiscountPopup">Close</button> &ndash;&gt;-->
+        <!--                    </div>-->
+        <!--                </div>-->
+      </div>
+    </div>
+
+    <div class="flex justify-center p-4 ">
+      <button v-if="!this.maxProductsDisplayed"
+              class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded"
+              @click="this.loadMoreProducts()">Load more
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+
+  const app = Vue.createApp({
+    data() {
+      return {
+        products: [],
+        search: '',
+        productCategory: [],
+        selectedCategory: null,
+        maxProductsDisplayed: false,
+        showDiscountPopup: false,
+        // selectedProduct: null
+      }
+    },
+    methods: {
+      getProducts() {
+        axios.get('https://dummyjson.com/products?limit=20')
+                .then(response => {
+                  this.products = response.data.products;
+                  console.log(response.data.products)
+                }).catch(error => {
+          console.log(error)
+        })
+      },
+      loadMoreProducts() {
+        const index = this.products.length
+        axios.get(`https://dummyjson.com/products?limit=10&skip=${index}`)
+                .then(response => {
+                  if (response.data.products.length === 0) {
+                    this.maxProductsDisplayed = true
+                  } else {
+                    for (let item in response.data.products) {
+                      this.products.push(response.data.products[item])
+                    }
+                  }
+                  console.log(response.data.products)
+                }).catch(error => {
+          console.log(error)
+        })
+      },
+      loadProductCategory(cat) {
+        console.log('load cat runs')
+        axios.get(`https://dummyjson.com/products/category/${cat}`)
+                .then(response => {
+                  this.products = response.data.products
+                  console.log(response.data.products)
+                }).catch(error => {
+          console.log(error)
+        })
+      },
+      calculateDiscountPrice(price, discountPercentage) {
+        const discountAmount = (price * discountPercentage) / 100;
+        return price - discountAmount;
+      },
+      closeDiscountPopup() {
+        this.showDiscountPopup = false;
+      }
+    },
+    computed: {
+      filteredProducts() {
+        // Check if searchTerm exists, if not, return all products
+        if (!this.search) {
+          return this.products;
+          console.log('runs')
+
+          // //added filter for sunglasess, if not checked its false, return all
+          // if(!this.selectedCategory){
+          //     return this.products
+          // }else{
+          //     console.log('computed runs')
+          //     return this.products.filter(product => product.category === 'sunglasses')
+          // }
+        }
+
+
+        // Convert searchTerm to lowercase for case-insensitive comparison
+        const searchTermLowerCase = this.search.toLowerCase();
+
+        // Filter products array using the searchTerm, returning only the ones that include it
+        return this.products.filter(product => {
+          const titleLowerCase = product.title.toLowerCase();
+          return titleLowerCase.includes(searchTermLowerCase);
+        });
+      },
+      getDiscountedPrice(){
+        const discountAmount = this.product.price * (this.product.discountPercentage / 100);
+        return (this.product.price - discountAmount).toFixed(2);
+      }
+    },
+
+    created() {
+      this.getProducts()
+    }
+  })
+
+  app.mount('#app')
+</script>
+
+</body>
+
+</html>
