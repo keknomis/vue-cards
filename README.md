@@ -1,0 +1,1 @@
+#simple html page, made with tailwind, vue and axios
