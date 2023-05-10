@@ -15,7 +15,7 @@
                    id="search"
                    class="w-full shadow-lg border-2 border-gray-300 rounded-lg px-4 py-2 text-lg font-semibold text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                    placeholder="search..."
-                   v-model="search"
+                   v-model="this.search"
             >
         </div>
 
@@ -25,7 +25,7 @@
                 Only sunglasses
             </button>
             <button class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded ml-2 mb-2"
-                    @click="this.getProducts()">
+                    @click="this.reset()">
                 Reset
             </button>
         </div>
@@ -66,7 +66,7 @@
                 <div class="bg-white p-6 rounded shadow-lg">
                     <p class="text-gray-800 font-bold text-lg mb-4">
                         Discounted Price: {{ this.calculateDiscountPrice(selectedProduct.price, selectedProduct.discountPercentage) }}
-                        of the {{selectedProduct.titlgit e}}</p>
+                        of the {{selectedProduct.title}}</p>
                 </div>
             </div>
         </div>
@@ -74,7 +74,7 @@
         <div class="flex justify-center p-4 ">
             <button v-if="!this.maxProductsDisplayed"
                     class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded"
-                    @click="this.loadMoreProducts()">Load more
+                    @click="this.loadMoreProducts">Load more
             </button>
         </div>
     </div>
@@ -85,46 +85,71 @@
     const app = Vue.createApp({
         data() {
             return {
-                products: [],
+               // products: [],
                 search: '',
-                productCategory: [],
+               // productCategory: [],
                 selectedCategory: null,
                 maxProductsDisplayed: false,
                 showDiscountPopup: false,
+
+                sessionProducts: []
             }
         },
         methods: {
-            getProducts() {
-                axios.get('https://dummyjson.com/products?limit=20')
-                    .then(response => {
-                        this.products = response.data.products;
-                        console.log(response.data.products)
-                    }).catch(error => {
-                    console.log(error)
-                })
+            storeToSession(data){
+                const productObj = JSON.stringify(data)
+                sessionStorage.setItem('productsArray', productObj)
             },
+
+            getFromSession(){
+                const products = sessionStorage.getItem('productsArray')
+                const parsedProducts = JSON.parse(products)
+                return parsedProducts
+            },
+
+            getProducts() {
+                if(this.sessionProducts.length === 0){
+                    axios.get('https://dummyjson.com/products?limit=20')
+                        .then(response => {
+                            this.sessionProducts =  response.data.products;
+                            //store to session
+                            this.storeToSession(response.data.products)
+                            console.log(response.data.products)
+                        }).catch(error => {
+                        console.log(error)
+                    })
+                } else{
+                    console.log("Session storage contains:",this.sessionProducts.length)
+                }
+
+            },
+            reset(){
+                this.sessionProducts = this.getFromSession()
+                this.maxProductsDisplayed =!this.maxProductsDisplayed
+            },
+
+
+
             loadMoreProducts() {
-                const index = this.products.length
+                const index = this.sessionProducts.length
                 axios.get(`https://dummyjson.com/products?limit=10&skip=${index}`)
                     .then(response => {
                         if (response.data.products.length === 0) {
                             this.maxProductsDisplayed = true
                         } else {
                             for (let item in response.data.products) {
-                                this.products.push(response.data.products[item])
+                                this.sessionProducts.push(response.data.products[item])
                             }
                         }
-                        console.log(response.data.products)
                     }).catch(error => {
                     console.log(error)
                 })
             },
             loadProductCategory(cat) {
-                console.log('load cat runs')
                 axios.get(`https://dummyjson.com/products/category/${cat}`)
                     .then(response => {
-                        this.products = response.data.products
-                        console.log(response.data.products)
+                        this.sessionProducts = response.data.products
+                        this.maxProductsDisplayed = true
                     }).catch(error => {
                     console.log(error)
                 })
@@ -143,15 +168,14 @@
             filteredProducts() {
                 // Check if searchTerm exists, if not, return all products
                 if (!this.search) {
-                    return this.products;
-                    console.log('runs')
+                    return this.sessionProducts;
                 }
 
                 // Convert searchTerm to lowercase for case-insensitive comparison
                 const searchTermLowerCase = this.search.toLowerCase();
 
                 // Filter products array using the searchTerm, returning only the ones that include it
-                return this.products.filter(product => {
+                return this.sessionProducts.filter(product => {
                     const titleLowerCase = product.title.toLowerCase();
                     return titleLowerCase.includes(searchTermLowerCase);
                 });
@@ -160,6 +184,7 @@
 
         created() {
             this.getProducts()
+
         }
     })
 
