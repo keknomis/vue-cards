@@ -166,7 +166,9 @@
 
             calculateDiscountPrice(price, discountPercentage) {
                 const discountAmount = (price * discountPercentage) / 100;
-                return price - discountAmount;
+                const round = Math.round(discountAmount * 100) / 100
+                return price - round;
+
             },
 
             closeDiscountPopup() {
