@@ -16,6 +16,7 @@
                    class="w-full shadow-lg border-2 border-gray-300 rounded-lg px-4 py-2 text-lg font-semibold text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                    placeholder="search..."
                    v-model="this.search"
+                   @input="this.debouncedSearch"
             >
         </div>
 
@@ -85,13 +86,11 @@
     const app = Vue.createApp({
         data() {
             return {
-               // products: [],
                 search: '',
-               // productCategory: [],
                 selectedCategory: null,
                 maxProductsDisplayed: false,
                 showDiscountPopup: false,
-
+                searchTimeout: null,
                 sessionProducts: []
             }
         },
@@ -114,7 +113,7 @@
                             this.sessionProducts =  response.data.products;
                             //store to session
                             this.storeToSession(response.data.products)
-                            console.log(response.data.products)
+                         //   console.log(response.data.products)
                         }).catch(error => {
                         console.log(error)
                     })
@@ -124,10 +123,11 @@
 
             },
             reset(){
+                this.search = ''
                 this.sessionProducts = this.getFromSession()
                 this.maxProductsDisplayed =!this.maxProductsDisplayed
-            },
 
+            },
 
 
             loadMoreProducts() {
@@ -162,14 +162,44 @@
 
             closeDiscountPopup() {
                 this.showDiscountPopup = false;
+            },
+
+            productSearch(product){
+                axios.get(`https://dummyjson.com/products/search?q=${product}`)
+                    .then(response =>{
+                        console.log('productSearchData ',response.data)
+                        this.sessionProducts = response.data.products
+                    })
+            },
+
+            debouncedSearch(){
+                clearTimeout(this.searchTimeout)
+                this.searchTimeout = setTimeout(()=>{
+                    this.productSearch(this.search)
+                },1000)
+            }
+        },
+        watch:{
+            search: function(newSearchTerm){
+                clearTimeout(this.searchTimeout);
+                this.searchTimeout = setTimeout(()=>{
+                    this.productSearch(newSearchTerm)
+                },1000)
             }
         },
         computed: {
             filteredProducts() {
                 // Check if searchTerm exists, if not, return all products
-                if (!this.search) {
-                    return this.sessionProducts;
-                }
+                // if (!this.search) {
+                //     return this.sessionProducts;
+                // }
+
+                // this.productSearch(this.search)
+                //
+                // //start new timeout
+                // this.searchTimeout = setTimeout(()=>{
+                //     this.productSearch(this.search)
+                // },1000)
 
                 // Convert searchTerm to lowercase for case-insensitive comparison
                 const searchTermLowerCase = this.search.toLowerCase();
